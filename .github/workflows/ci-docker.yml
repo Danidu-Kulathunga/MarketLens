@@ -1,0 +1,52 @@
+name: Docker Build & Verification CI
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'docker-compose*.yml'
+      - 'infrastructure/docker/**'
+      - 'infrastructure/nginx/**'
+      - 'frontend/**'
+      - 'backend/**'
+      - 'data-pipeline/**'
+      - 'ai/**'
+      - 'package.json'
+      - '.github/workflows/ci-docker.yml'
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'docker-compose*.yml'
+      - 'infrastructure/docker/**'
+      - 'infrastructure/nginx/**'
+      - 'frontend/**'
+      - 'backend/**'
+      - 'data-pipeline/**'
+      - 'ai/**'
+      - 'package.json'
+      - '.github/workflows/ci-docker.yml'
+
+jobs:
+  verify-docker:
+    name: Verify Docker Compose & Build Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Copy Env File
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          docker compose -f docker-compose.yml config
+          docker compose -f docker-compose.prod.yml config
+
+      - name: Build Core Development Images
+        run: |
+          docker compose build --parallel frontend api-gateway market-service news-service pipeline-service ai-service

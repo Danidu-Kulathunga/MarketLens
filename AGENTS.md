@@ -57,3 +57,45 @@ The platform implements a polyglot microservice and containerized cloud architec
 - **Preserve Architecture**: Do not replace the chosen technology stack without explicit user instructions.
 - **Reference Document**: Detailed module specifications, UML context, and team responsibilities reside in [MARKETLENS_PROJECT_CONTEXT.md](./MARKETLENS_PROJECT_CONTEXT.md).
 - **Test Before Completing**: Verify all builds (`npm run build`) and linting before concluding any implementation task.
+
+---
+
+## 4. Five-Member Team Ownership & Module Boundaries
+
+Each developer vertically owns their assigned module across UI, API, microservice, and database schemas:
+
+1. **Member 1 (Market Exploration & Stock Analysis)**:
+   - Frontend: `frontend/src/features/market/`, `frontend/src/features/dashboard/`
+   - Microservice: `backend/market-data-service/` (FastAPI :8001)
+   - Scope: Real-time quotes, OHLCV candles, technical indicators (SMA, EMA, RSI, MACD).
+
+2. **Member 2 (Portfolio, Watchlist & Alert Management)**:
+   - Frontend: `frontend/src/features/portfolio/`, `frontend/src/features/watchlist/`
+   - Database: `portfolios`, `portfolio_holdings`, `watchlists` tables in PostgreSQL.
+   - Scope: Real-time cost basis, unrealized P&L, price trigger alerts, sparklines.
+
+3. **Member 3 (Financial News & Market Intelligence)**:
+   - Frontend: `frontend/src/features/news/`
+   - Microservice: `backend/news-service/` (FastAPI :8002)
+   - Scope: NewsAPI ingestion, NLP-based sentiment analysis, ticker correlation.
+
+4. **Member 4 (Data Management & Ingestion Pipeline)**:
+   - Frontend: `frontend/src/features/data-management/`, `frontend/src/features/data-import/`, `frontend/src/features/data-quality/`
+   - Microservice: `data-pipeline/` (FastAPI :8003)
+   - Scope: Dual ingestion (APIs + CSV uploads), anomaly triage drawer, canonical model storage.
+
+5. **Member 5 (AI Prediction & Advanced Analytics)**:
+   - Frontend: `frontend/src/features/ai/`
+   - Microservice: `ai/` (FastAPI :8004)
+   - Scope: LSTM trend classifier, XGBoost volatility model, analyst thesis grounding.
+
+---
+
+## 5. Git Flow & CI/CD Governance
+
+- **Protected Branches**: `main` (production) and `develop` (team integration). Direct pushes are strictly prohibited.
+- **Feature Branches**: Must branch from `develop` using `feature/member<X>-<task-name>`.
+- **Pull Requests**: Must target `develop`, link a GitHub Issue, use `.github/pull_request_template.md`, and pass automated GitHub Actions CI.
+- **Docker Verification**: Every PR affecting backend, frontend, or infrastructure must be verified with `docker compose up -d --build`.
+- **Full Guide**: Consult [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/development/GIT_WORKFLOW.md](./docs/development/GIT_WORKFLOW.md).
+

@@ -7,23 +7,67 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
+# Node Dependencies & Build Artifacts
 node_modules/
-
-# Production build artifacts
 dist/
 dist-ssr/
 *.local
 
-# Environment variables
+# Environment variables (NEVER commit secrets!)
 .env
 .env.local
 .env.*.local
+!.env.example
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Java & Maven Artifacts
+target/
+*.class
+.mvn/
+*.jar
+*.war
+*.nar
+*.ear
+
+# Docker data volumes & temporary mounts
+postgres_data/
+uploaded_datasets/
+processed_data/
+model_weights/
 
 # Editor and OS
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 

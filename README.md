@@ -1,33 +1,150 @@
-# MarketLens — Financial Market Data Management & Analytics Platform
+# MarketLens — Financial Market Intelligence & Analytics Platform
 
-MarketLens is a modern, enterprise-grade Financial Market Data Management and Analytics Platform built with **React 18**, **TypeScript**, **Vite**, **Tailwind CSS**, and **Recharts**. The platform provides institutional-grade market telemetry, owned-portfolio management, AI-grounded financial research, automated data ingestion pipelines, statistical data quality triage, and administrative controls.
+MarketLens is an enterprise-grade Financial Market Intelligence and Analytics Platform built with **React 18**, **TypeScript**, **Python (FastAPI)**, **Java (Spring Boot)**, **PostgreSQL + TimescaleDB**, and **Docker**.
+
+The platform provides institutional-grade market telemetry, owned-portfolio management, AI-grounded financial research, automated data ingestion pipelines, statistical data quality triage, and administrative controls.
 
 ---
 
-## 🚀 Quick Start
+## 🏛️ System Architecture
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18.0.0 or higher recommended)
-- `npm` (v9.0.0 or higher)
+MarketLens implements a containerized polyglot microservice architecture orchestrated via Docker Compose and an Nginx API Gateway:
 
-### Installation & Development Server
+```text
+                                  Client Browser
+                                        │
+                                        ▼
+                            ┌───────────────────────┐
+                            │  Nginx API Gateway    │
+                            │      (Port :80)       │
+                            └───────────┬───────────┘
+                                        │
+     ┌──────────────────────────────────┼──────────────────────────────────┐
+     │                                  │                                  │
+     ▼                                  ▼                                  ▼
+┌─────────────┐                ┌───────────────────┐              ┌──────────────────┐
+│  Frontend   │                │ User/Auth Service │              │  Market Service  │
+│(React :5173)│                │  (Java :8080)     │              │  (Python :8001)  │
+└─────────────┘                └─────────┬─────────┘              └────────┬─────────┘
+                                         │                                 │
+     ┌───────────────────────────────────┼─────────────────────────────────┤
+     │                                   │                                 │
+     ▼                                   ▼                                 ▼
+┌──────────────────┐           ┌───────────────────┐              ┌──────────────────┐
+│   News Service   │           │ Pipeline Service  │              │    AI Service    │
+│  (Python :8002)  │           │  (Python :8003)   │              │  (Python :8004)  │
+└──────────────────┘           └─────────┬─────────┘              └────────┬─────────┘
+                                         │                                 │
+                                         └────────────────┬────────────────┘
+                                                          ▼
+                                              ┌───────────────────────┐
+                                              │ PostgreSQL + Timescale│
+                                              │      (Port :5432)     │
+                                              └───────────────────────┘
+```
+
+---
+
+## 🛠️ Canonical Technology Stack
+
+| Component / Layer | Technology / Platform | Description & Scope |
+| :--- | :--- | :--- |
+| **Frontend** | React | React 18, TypeScript, Vite, Tailwind CSS, Recharts for responsive analyst dashboards and operations UI |
+| **API / Access Layer** | API Gateway / Load Balancer | Reverse proxy, routing, SSL termination, rate limiting, request validation, service load balancing |
+| **User & Auth Service** | Java + Spring Boot | Enterprise authentication, RBAC (Analyst, Data Manager, Admin), session management, audit logging |
+| **Data Ingestion Service** | Python | Batch ingestion pipelines (CSV/JSON upload wizard), API schedulers, schema mapping, data cleaning |
+| **Market Data Service** | Python | Real-time quote streaming, historical OHLCV candles, technical indicators (SMA, EMA, RSI, MACD) |
+| **AI & Prediction Service** | Python | Predictive ML models (trends, volatility, price direction), analyst thesis grounding, explanation telemetry |
+| **News & Intelligence Service** | Python | Financial news aggregation, NLP sentiment analysis, sector impact scoring, ticker correlation |
+| **Relational Database** | PostgreSQL | Relational transactional data: user profiles, portfolios, transactions, watchlists, alerts, import metadata |
+| **Time-Series Database** | TimescaleDB | High-frequency financial ticks, historical OHLCV data, volume telemetry, hypertable aggregations |
+| **File Storage** | Uploaded CSV/JSON files, logs | Persistent storage for raw uploaded datasets, processed ingestion archives, exported reports, logs |
+| **Containerization** | Docker | Containerized microservices ensuring environment consistency across dev, staging, and production |
+| **Orchestration** | Kubernetes | Container orchestration, autoscaling, service discovery, health monitoring, zero-downtime rolling deploys |
+| **Cloud Infrastructure** | Cloud platform (e.g., AWS / GCP) | Target cloud platform infrastructure (prototype deployment currently on Cloudflare Workers) |
+| **Monitoring** | Prometheus + Grafana | Service metrics scraping, system telemetry, health dashboards, alerting rules |
+| **Security** | SSL, Firewall, Access Control | End-to-end SSL/TLS encryption, WAF/Firewalls, network security policies, RBAC, secret management |
+| **Market Data Sources** | Market Data APIs (Twelve Data, CSE) | External real-time and historical financial market data feeds and exchange interfaces |
+| **News Sources** | News APIs (e.g., NewsAPI) | External financial news and media feeds for market intelligence and sentiment analysis |
+
+---
+
+## 👥 Five-Member Team Ownership Matrix
+
+Each developer vertically owns their assigned functional module across frontend, backend microservice, API contracts, and database integration:
+
+| Member | Module Domain | Frontend Scope | Backend Microservice Scope | Primary Technologies |
+| :--- | :--- | :--- | :--- | :--- |
+| **Member 1** | **Market Exploration & Stock Analysis** | `/markets`, `/markets/:symbol`, interactive charts, SMA 50/200, RSI, MACD | `backend/market-data-service`: Quotes, OHLCV candles, technical indicators | React, Python, FastAPI, Recharts |
+| **Member 2** | **Portfolio, Watchlist & Alerts** | `/portfolio`, `/watchlist`, holding modals, real-time P&L, price trigger alerts | PostgreSQL relational models: portfolios, holdings, watchlists | React, PostgreSQL, Java/Python |
+| **Member 3** | **Financial News & Intelligence** | `/news`, sentiment breakdown, trending tickers, category filters | `backend/news-service`: NewsAPI ingestion, NLP sentiment, ticker correlation | React, Python, FastAPI, NLP |
+| **Member 4** | **Data Management & Pipeline** | `/data-management`, `/data-import`, `/data-quality`, 3-step upload wizard | `data-pipeline`: Dual ingestion (Twelve Data, CSE, CSV/JSON uploads), anomaly triage | React, Python, FastAPI, Pandas, TimescaleDB |
+| **Member 5** | **AI Prediction & Analytics** | `/ai-analyst`, thesis evidence matrix, prediction confidence gauges | `ai`: LSTM trend classifier, XGBoost volatility, grounding engine | React, Python, FastAPI, Scikit-learn, PyTorch |
+
+*Detailed boundaries and integration workflows reside in [docs/development/TEAM_OWNERSHIP.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/development/TEAM_OWNERSHIP.md).*
+
+---
+
+## 🚀 Quick Start with Docker (Recommended)
+
+The entire MarketLens development environment can be booted with Docker Compose:
+
+### 1. Configure Environment
+```bash
+# Copy example environment configuration
+cp .env.example .env
+```
+
+### 2. Launch the Development Stack
+```bash
+# Start all 8 containers with live hot-reloading
+docker compose up -d --build
+```
+
+### 3. Verify Container Health
+```bash
+docker compose ps
+```
+
+- **Frontend Application**: `http://localhost:5173` (or `http://localhost` via Gateway)
+- **API Gateway**: `http://localhost`
+- **Market Data Service**: `http://localhost:8001/health`
+- **News Service**: `http://localhost:8002/health`
+- **Data Pipeline Service**: `http://localhost:8003/health`
+- **AI Prediction Service**: `http://localhost:8004/health`
+- **User & Auth Service**: `http://localhost:8080/health`
+- **PostgreSQL Database**: `localhost:5432`
+
+---
+
+## 💻 Local Development (Frontend Standalone)
+
+If developing solely on the React UI without running containerized backends:
+
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Start local development server
+# 2. Start Vite development server
 npm run dev
+
+# 3. Compile TypeScript & build production bundle
+npm run build
 ```
 
-Visit `http://localhost:5173` in your browser.
+---
 
-### Production Build & Preview
+## 🧪 Running Automated Tests
+
 ```bash
-# Compile TypeScript and build optimized assets
+# Frontend TypeScript check and production build
 npm run build
 
-# Preview the production build locally
-npm run preview
+# Python microservices unit tests (via Docker)
+docker compose exec market-service pytest -v
+docker compose exec news-service pytest -v
+docker compose exec pipeline-service pytest -v
+docker compose exec ai-service pytest -v
 ```
 
 ---
@@ -46,9 +163,9 @@ MarketLens includes complete mock authentication and state management with persi
 
 ---
 
-## 🎨 Design Reference & Asset Inventory
+## 🎨 Approved Design & Route Catalog
 
-All screens were recreated from the approved PNG visual references with high fidelity:
+All screens have been implemented with high fidelity against approved visual references:
 
 | Screen Name | Approved PNG Reference | Implemented React Route | Key Components & Features |
 | :--- | :--- | :--- | :--- |
@@ -76,66 +193,48 @@ All screens were recreated from the approved PNG visual references with high fid
 
 ---
 
-## 🛠️ Technology Stack & Architecture
-
-- **Framework**: React 18 with TypeScript 5
-- **Build Tool**: Vite 6 (fast HMR and optimized production bundling)
-- **Styling**: Tailwind CSS 3 (bespoke design tokens matching the approved UI)
-- **Charts & Visualizations**: Recharts (responsive financial charts, area gradients, bar charts, multi-series indicators)
-- **Icons**: Lucide React
-- **Routing**: React Router DOM v6 (role-based guards, protected routes, deep linking)
-- **Branding**: Official MarketLens SVGs (`marketlens-logo.svg`, `marketlens-icon.svg`)
-- **State Architecture**:
-  - `AuthContext`: Role simulation, persistent demo identities, seamless role switching.
-  - `MarketDataContext`: Real-time reactive mock financial data engine with persistent `localStorage` synchronization for holdings, watchlists, alerts, import batches, data quality issues, and audit logs.
-
----
-
 ## 📂 Project Directory Structure
 
 ```text
 Marketlens/
-├── frontend design/          # Approved visual references (.png) & official SVGs
-├── public/                   # Public static assets & branding SVGs
-├── src/
-│   ├── assets/
-│   │   └── branding/         # marketlens-logo.svg, marketlens-icon.svg
-│   ├── components/
-│   │   ├── layout/           # AppLayout, Sidebar, TopHeader
-│   │   └── ui/               # Badge, Button, Input, Modal
-│   ├── context/              # AuthContext, MarketDataContext
-│   ├── data/
-│   │   └── mock/             # Realistic financial datasets, stocks, batches, logs
-│   ├── features/
-│   │   ├── admin/            # UserManagement, SystemSettings, AuditLogs
-│   │   ├── ai/               # AIAnalystPage
-│   │   ├── api-access/       # APIAccessPage, APIKeyTab, APIEndpointsTab, APIUsageTab
-│   │   ├── auth/             # LoginPage, ForgotPassword, ResetPassword, SessionExpired
-│   │   ├── dashboard/        # DashboardPage
-│   │   ├── data-import/      # DataImportPage (3-step wizard)
-│   │   ├── data-management/  # DataManagementPage
-│   │   ├── data-quality/     # DataQualityPage (resolution drawer)
-│   │   ├── market/           # MarketsPage, SingleStockPage
-│   │   ├── news/             # NewsPage
-│   │   ├── portfolio/        # PortfolioPage (Holdings & P&L tracking)
-│   │   └── watchlist/        # WatchlistPage
-│   ├── routes/               # AppRoutes, ProtectedRoute, RoleGuard
-│   ├── types/                # Strict TypeScript interfaces
-│   ├── App.tsx               # App root provider wrapper
-│   ├── index.css             # Tailwind base styles & custom scrollbars
-│   ├── main.tsx              # React DOM entry point
-│   └── vite-env.d.ts         # Vite client type declarations
-├── index.html                # HTML entry template with typography links
-├── package.json              # Dependencies and scripts
-├── tailwind.config.js        # Design tokens & color palette
-├── tsconfig.json             # TypeScript project configuration
-└── vite.config.ts            # Vite configuration with path aliases
+├── .github/
+│   ├── ISSUE_TEMPLATE/       # Structured GitHub Issue templates
+│   ├── workflows/            # GitHub Actions CI/CD workflows
+│   └── pull_request_template.md # Professional PR template
+├── ai/                       # Member 5: AI & Prediction Service (Python)
+├── backend/
+│   ├── market-data-service/  # Member 1: Quotes, Candles & Indicators (Python)
+│   ├── news-service/         # Member 3: News Aggregation & Sentiment (Python)
+│   └── user-auth-service/    # Enterprise User & Auth (Java / Spring Boot)
+├── data-pipeline/            # Member 4: Ingestion Pipeline & Upload Wizard (Python)
+├── docs/
+│   ├── api/                  # API contracts & inter-service specifications
+│   ├── architecture/         # System architecture & data flow diagrams
+│   ├── deployment/           # Docker & operations guides
+│   └── development/          # Team ownership matrix & Git workflow
+├── frontend/                 # React 18 TypeScript Frontend Application
+│   ├── src/                  # Feature modules, state contexts & UI kit
+│   ├── public/               # Static assets & brand icons
+│   ├── Dockerfile            # Multi-stage production Nginx container
+│   ├── Dockerfile.dev        # Vite dev server with hot-reloading
+│   └── package.json          # Frontend dependencies & scripts
+├── infrastructure/
+├── docker-compose.prod.yml   # Production container environment
+├── .env.example              # Environment variables template
+├── CONTRIBUTING.md           # Branching strategy & PR submission rules
+└── README.md                 # Project introduction and documentation
 ```
 
 ---
 
-## 🧪 Verification & Quality Assurance
+## 📖 Complete Documentation Index
 
-- **Zero TypeScript Errors**: Verified with `npx tsc --noEmit`.
-- **Production Compilation**: Verified with `npm run build` (all chunks optimized, gzip-ready).
-- **Backend-Agnostic**: Operates 100% locally without external server dependencies.
+- **Contributing & Git Workflow**: [CONTRIBUTING.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/CONTRIBUTING.md)
+- **Team Ownership Matrix**: [docs/development/TEAM_OWNERSHIP.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/development/TEAM_OWNERSHIP.md)
+- **Git Command Guide**: [docs/development/GIT_WORKFLOW.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/development/GIT_WORKFLOW.md)
+- **Docker Container Guide**: [docs/deployment/DOCKER_GUIDE.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/deployment/DOCKER_GUIDE.md)
+- **API Design & Integration**: [docs/development/API_INTEGRATION.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/development/API_INTEGRATION.md)
+- **Member 4 ➔ Member 5 Contract**: [docs/api/CONTRACT_MEMBER4_MEMBER5.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/api/CONTRACT_MEMBER4_MEMBER5.md)
+- **Development & Governance**: [docs/development/DEVELOPMENT_GUIDELINES.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/docs/development/DEVELOPMENT_GUIDELINES.md)
+- **AI Agent Architectural Context**: [AGENTS.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/AGENTS.md)
+- **Exhaustive System Context**: [MARKETLENS_PROJECT_CONTEXT.md](file:///c:/Users/danid/OneDrive/Documents/Marketlens/MARKETLENS_PROJECT_CONTEXT.md)

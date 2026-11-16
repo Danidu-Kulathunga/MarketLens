@@ -1,0 +1,187 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/nginx/Dockerfile
+    container_name: marketlens-gateway-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - market-service
+      - news-service
+      - pipeline-service
+      - ai-service
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    container_name: marketlens-frontend-prod
+    restart: always
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  user-auth-service:
+    build:
+      context: backend/user-auth-service
+      dockerfile: Dockerfile
+    container_name: marketlens-auth-prod
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+
+  market-service:
+    build:
+      context: backend/market-data-service
+      dockerfile: Dockerfile
+    container_name: marketlens-market-service-prod
+    restart: always
+    environment:
+      - PORT=8001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+
+  news-service:
+    build:
+      context: backend/news-service
+      dockerfile: Dockerfile
+    container_name: marketlens-news-service-prod
+    restart: always
+    environment:
+      - PORT=8002
+      - NEWS_API_KEY=${NEWS_API_KEY}
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  pipeline-service:
+    build:
+      context: data-pipeline
+      dockerfile: Dockerfile
+    container_name: marketlens-pipeline-service-prod
+    restart: always
+    environment:
+      - PORT=8003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - TWELVE_DATA_API_KEY=${TWELVE_DATA_API_KEY}
+      - CSE_API_KEY=${CSE_API_KEY}
+    volumes:
+      - uploaded_datasets:/app/uploads
+      - processed_data:/app/processed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+
+  ai-service:
+    build:
+      context: ai
+      dockerfile: Dockerfile
+    container_name: marketlens-ai-service-prod
+    restart: always
+    environment:
+      - PORT=8004
+      - PIPELINE_SERVICE_URL=http://pipeline-service:8003
+      - MARKET_SERVICE_URL=http://market-service:8001
+    volumes:
+      - model_weights:/app/models
+    depends_on:
+      pipeline-service:
+        condition: service_healthy
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.5'
+          memory: 3072M
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: marketlens-db-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marketlens-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+
+networks:
+  marketlens-network:
+    name: marketlens-network-prod
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: marketlens_postgres_data_prod
+  uploaded_datasets:
+    name: marketlens_uploaded_datasets_prod
+  processed_data:
+    name: marketlens_processed_data_prod
+  model_weights:
+    name: marketlens_model_weights_prod
