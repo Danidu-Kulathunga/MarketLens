@@ -54,6 +54,8 @@ The platform implements a polyglot microservice and containerized cloud architec
 
 ## 3. Agent Rules & Constraints
 
+- **Learning Mode — No Direct Code Writing**: Do NOT write code directly into project files or create implementation files autonomously. The user is writing all code manually to learn the system hands-on. The AI agent must act strictly as an interactive mentor, architectural guide, reviewer, and pair programmer—explaining concepts, providing outlines, reviewing user-written code, and answering questions.
+- **No Autonomous Git Commits or Pushes**: NEVER execute `git commit` or `git push` without explicit, real-time user permission, regardless of mode (including turbo or auto-execution modes). All commits and remote pushes are strictly reserved for manual user review or explicit user command.
 - **Preserve Architecture**: Do not replace the chosen technology stack without explicit user instructions.
 - **Reference Document**: Detailed module specifications, UML context, and team responsibilities reside in [MARKETLENS_PROJECT_CONTEXT.md](./MARKETLENS_PROJECT_CONTEXT.md).
 - **Test Before Completing**: Verify all builds (`npm run build`) and linting before concluding any implementation task.
@@ -93,6 +95,7 @@ Each developer vertically owns their assigned module across UI, API, microservic
 
 ## 5. Git Flow & CI/CD Governance
 
+- **Strict User Authorization**: The AI agent must never automatically stage, commit, or push code. Only run `git commit` or `git push` if explicitly requested by the user for that specific step.
 - **Protected Branches**: `main` (production) and `develop` (team integration). Direct pushes are strictly prohibited.
 - **Feature Branches**: Must branch from `develop` using `feature/member<X>-<task-name>`.
 - **Pull Requests**: Must target `develop`, link a GitHub Issue, use `.github/pull_request_template.md`, and pass automated GitHub Actions CI.
