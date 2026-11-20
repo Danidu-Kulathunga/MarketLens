@@ -95,3 +95,14 @@ Member 5 (AI Prediction) does not ingest external APIs or parse CSV files. Inste
 ```
 
 See [CONTRACT_MEMBER4_MEMBER5.md](../api/CONTRACT_MEMBER4_MEMBER5.md) for the exact payload contract and code examples.
+
+## 5. Auth Error Codes
+
+These `error.code` values are returned by the Auth service and by any service validating a JWT. Defined in `docs/api/AUTH_CONTRACT.md`.
+
+| Code | HTTP | When |
+|---|---|---|
+| `UNAUTHENTICATED` | 401 | Missing header, malformed or badly signed token, wrong issuer |
+| `TOKEN_EXPIRED` | 401 | Valid token but expired; call `/api/v1/auth/refresh` and retry once |
+| `INVALID_CREDENTIALS` | 401 | Wrong email or password at login |
+| `FORBIDDEN` | 403 | Valid token, but the role or ownership check failed |
