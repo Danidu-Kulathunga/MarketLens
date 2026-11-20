@@ -26,33 +26,34 @@ This document is the single source of truth for identity, roles, tokens and auth
 
 ### 1.1 Endpoint groups and role access
 
-Path prefixes are the proposed convention for the Nginx gateway. Owners confirm their prefix when acknowledging this contract.
+Prefixes follow the gateway routing table in `docs/development/API_INTEGRATION.md` (`/api/v1/...`). Prefixes not in that table (notifications, dashboard, api-keys, admin) are proposed by this contract. Owners confirm their prefix when acknowledging.
 
 | Endpoint group | Prefix | Owner | ANALYST | DATA_MANAGER | ADMIN |
 |---|---|---|:-:|:-:|:-:|
-| Auth (register, login, refresh, logout) | `/api/auth/**` | M5 | public | public | public |
-| Current user (`/me`) | `/api/auth/me` | M5 | yes | yes | yes |
-| Own notifications, personal dashboard | `/api/notifications/**`, `/api/dashboard/**` | M4 | yes | yes | yes |
-| Market data (read) | `/api/market/**` | M1 | yes | yes | yes |
-| Portfolio, watchlists, alerts (own data only) | `/api/portfolios/**`, `/api/watchlists/**`, `/api/alerts/**` | M2 | yes | no | no |
-| News (read) | `/api/news/**` | M3 | yes | yes | yes |
-| News sources / categories (write) | `/api/news/sources/**`, `/api/news/categories/**` | M3 | no | yes | yes |
-| Data management, import, quality | `/api/pipeline/**` | M1 | no | yes | yes |
-| AI chat and analysis (own history) | `/api/ai/**` except predictions | M4 | yes | no | no |
-| Predictions (generation, history, model evaluation) (Sprint 2) | `/api/ai/predictions/**` | M5 | yes | no | no |
-| API Access / keys (Sprint 2) | `/api/api-keys/**` | M5 | yes | no | yes |
-| User and role management, system settings, audit (Sprint 2) | `/api/admin/**` | M5 | no | no | yes |
+| Auth (register, login, refresh, logout) | `/api/v1/auth/**` | M5 | public | public | public |
+| Current user (`/me`) | `/api/v1/auth/me` | M5 | yes | yes | yes |
+| Own notifications, personal dashboard | `/api/v1/notifications/**`, `/api/v1/dashboard/**` | M4 | yes | yes | yes |
+| Market data (read) | `/api/v1/market/**` | M1 | yes | yes | yes |
+| Portfolio, watchlists, alerts (own data only) | `/api/v1/portfolio/**` (portfolios, watchlists, alerts) | M2 | yes | no | no |
+| News (read) | `/api/v1/news/**` | M3 | yes | yes | yes |
+| News sources / categories (write) | `/api/v1/news/sources/**`, `/api/v1/news/categories/**` | M3 | no | yes | yes |
+| Data management, import, quality | `/api/v1/pipeline/**` | M1 | no | yes | yes |
+| AI chat and analysis (own history) | `/api/v1/ai/**` except predictions | M4 | yes | no | no |
+| Predictions (generation, history, model evaluation) (Sprint 2) | `/api/v1/ai/predict/**`, `/api/v1/ai/predictions/**` | M5 | yes | no | no |
+| API Access / keys (Sprint 2) | `/api/v1/api-keys/**` | M5 | yes | no | yes |
+| User and role management, system settings, audit (Sprint 2) | `/api/v1/admin/**` | M5 | no | no | yes |
 
 Rules:
 1. "Own data only" means the resource's `user_id` must equal the token's user id (see section 5.3).
 2. Anything not listed above defaults to **authenticated, any role** until its owner adds a row via PR.
 3. Roles are not hierarchical. Admin does not automatically get Analyst-only features such as portfolios.
+4. The Owner column follows the latest work distribution. `API_INTEGRATION.md` and the README still list older owners (pipeline: Member 4, AI: Member 5) and should be updated to match.
 
 ---
 
 ## 2. Auth service endpoints
 
-Base: `http://localhost/api/auth` (gateway) or `http://localhost:8080/api/auth` (direct).
+Base: `http://localhost/api/v1/auth` (through the gateway; the browser never calls service ports directly).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -69,23 +70,27 @@ Request:
 { "email": "alex.silva@marketlens.io", "password": "********" }
 ```
 
-Response `200`:
+Response `200` (canonical success envelope):
 ```json
 {
-  "accessToken": "<jwt>",
-  "refreshToken": "<opaque-string>",
-  "tokenType": "Bearer",
-  "expiresIn": 900,
-  "user": {
-    "id": "b3f1c2e4-...",
-    "email": "alex.silva@marketlens.io",
-    "fullName": "Alex Silva",
-    "role": "ROLE_ANALYST"
-  }
+  "status": "success",
+  "data": {
+    "accessToken": "<jwt>",
+    "refreshToken": "<opaque-string>",
+    "tokenType": "Bearer",
+    "expiresIn": 900,
+    "user": {
+      "id": "b3f1c2e4-...",
+      "email": "alex.silva@marketlens.io",
+      "fullName": "Alex Silva",
+      "role": "ROLE_ANALYST"
+    }
+  },
+  "meta": { "timestamp": "2026-11-17T09:30:00Z", "version": "v1" }
 }
 ```
 
-Registration, `/me` and `/refresh` response bodies follow the same `user` and token shapes. Exact request fields for registration are in the OpenAPI spec produced in M5-02.
+Registration, `/me` and `/refresh` responses use the same envelope, with the same `user` and token shapes inside `data`. Exact request fields for registration are in the OpenAPI spec produced in M5-02.
 
 ---
 
@@ -130,7 +135,7 @@ Do not put passwords or other sensitive data in the token.
 | Logout | Revokes the refresh token. The access token stays valid until `exp` (max 15 min). |
 
 Client behaviour:
-1. On `401 TOKEN_EXPIRED`, the frontend calls `POST /api/auth/refresh` once, then retries the original request.
+1. On `401 TOKEN_EXPIRED`, the frontend calls `POST /api/v1/auth/refresh` once, then retries the original request.
 2. If refresh also fails (`UNAUTHENTICATED`), clear the session and redirect to `/session-expired`.
 3. Services other than the auth service **never** call refresh. They only validate access tokens.
 
@@ -149,16 +154,19 @@ Services validate locally using `JWT_SECRET`, with no call to the auth service p
 
 ## 4. Auth error codes (added to the shared error list)
 
-All auth errors use the standard MarketLens error body:
+All auth errors use the canonical error envelope from `docs/development/API_INTEGRATION.md`. The four codes below are new `error.code` values added to that list (this PR adds them to that file).
 
 ```json
 {
+  "status": "error",
   "error": {
     "code": "TOKEN_EXPIRED",
     "message": "Access token has expired.",
-    "status": 401,
-    "path": "/api/portfolios",
-    "timestamp": "2026-11-17T09:30:00Z"
+    "details": []
+  },
+  "meta": {
+    "timestamp": "2026-11-17T09:30:00Z",
+    "version": "v1"
   }
 }
 ```
@@ -235,7 +243,7 @@ def list_portfolios(user: AuthUser = Depends(require_roles("ROLE_ANALYST"))):
     return repo.find_by_user(user.id)
 ```
 
-Register this exception handler once in `main.py` so errors use the body from section 4. If the project's shared error envelope (see `docs/development/API_INTEGRATION.md`) differs, follow the shared one and keep the `code` values unchanged.
+Register this exception handler once in `main.py` so auth errors use the canonical error envelope from section 4. Services that already have a handler only need to keep the `code` values unchanged.
 
 ```python
 from datetime import datetime, timezone
@@ -248,12 +256,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     detail = exc.detail if isinstance(exc.detail, dict) else {"code": "ERROR", "message": str(exc.detail)}
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": {
-            **detail,
-            "status": exc.status_code,
-            "path": request.url.path,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }},
+        content={
+            "status": "error",
+            "error": {**detail, "details": []},
+            "meta": {"timestamp": datetime.now(timezone.utc).isoformat(), "version": "v1"},
+        },
     )
 ```
 
@@ -330,16 +337,16 @@ Reply on the PR with "Acknowledged" once you have checked your section.
 
 | Member | Module | Confirms | Acknowledged |
 |---|---|---|---|
-| Member 1 | Market / Data Management | Prefixes `/api/market/**`, `/api/pipeline/**`, role access | [ ] |
+| Member 1 | Market / Data Management | Prefixes `/api/v1/market/**`, `/api/v1/pipeline/**`, role access | [ ] |
 | Member 2 | Portfolio / Watchlist / Alerts | Prefixes, own-data-only rule, will use stub | [ ] |
-| Member 3 | News | Prefix `/api/news/**`, write endpoints for Data Manager/Admin | [ ] |
-| Member 4 | AI assistant / Dashboard / Notifications | Prefixes `/api/ai/**` (except predictions), `/api/dashboard/**`, `/api/notifications/**`, own-data-only for notifications | [ ] |
+| Member 3 | News | Prefix `/api/v1/news/**`, write endpoints for Data Manager/Admin | [ ] |
+| Member 4 | AI assistant / Dashboard / Notifications | Prefixes `/api/v1/ai/**` (except predictions), `/api/v1/dashboard/**`, `/api/v1/notifications/**`, own-data-only for notifications | [ ] |
 
-Member 5 owns `/api/ai/predictions/**` and the auth, API-key and admin prefixes, so no separate acknowledgement is needed for them.
+Member 5 owns `/api/v1/ai/predict/**`, `/api/v1/ai/predictions/**` and the auth, API-key and admin prefixes, so no separate acknowledgement is needed for them.
 
 ## 8. Change log
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-11-17 | Initial contract (M5-01) |
-| 1.1 | 2026-11-17 | Ownership aligned to the latest work distribution (dashboard and notifications to M4, data management/import/quality to M1, predictions to M5); `exp`/`iss`/`sub`/`role` made required; stub role check; service-to-service rule (5.5); FastAPI error handler |
+| 1.1 | 2026-11-17 | Ownership aligned to the latest work distribution (dashboard and notifications to M4, data management/import/quality to M1, predictions to M5); paths use `/api/v1` and responses use the canonical envelope from `API_INTEGRATION.md`; `exp`/`iss`/`sub`/`role` made required; stub role check; service-to-service rule (5.5); FastAPI error handler |
