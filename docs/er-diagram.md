@@ -45,8 +45,15 @@ erDiagram
 ```
 
 ## Designed now, created in Sprint 2
-`api_keys`, `api_usage_records`, `audit_logs`, `system_settings`
-(all FK to `users.id`; `api_keys` stores only a hash of the key).
+
+Not created by V1 to V3. All reference `users.id` (UUID).
+
+| Table | Columns (planned) |
+|---|---|
+| `api_keys` | id UUID PK, user_id UUID FK, name, key_hash (hash only, never the raw key), status (ACTIVE / REVOKED), permissions, expires_at, created_at, last_used_at |
+| `api_usage_records` | id UUID PK, api_key_id FK, user_id FK, endpoint, status_code, success boolean, requested_at |
+| `audit_logs` | id UUID PK, user_id UUID FK (nullable for failed logins), action, resource, metadata JSONB, created_at |
+| `system_settings` | key PK, value, updated_by UUID FK, updated_at |
 
 ## For M2 / M3 / M4
 
