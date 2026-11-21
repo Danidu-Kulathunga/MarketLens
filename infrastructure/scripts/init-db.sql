@@ -12,22 +12,15 @@ EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'TimescaleDB extension not available, falling back to standard PostgreSQL tables.';
 END $$;
 
--- 2. User & Authentication Schema (Member Managed / User & Auth Service)
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('ROLE_ANALYST', 'ROLE_DATA_MANAGER', 'ROLE_ADMIN')),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- 2. User & Authentication Schema
+-- MOVED: users, roles, profiles and preferences are now created by the
+-- user-auth-service Flyway migrations (V1, V2). The foreign keys from the tables
+-- below to users(id) are added by migration V3 of that service.
 
 -- 3. Portfolios, Holdings & Watchlists (Member 2)
 CREATE TABLE IF NOT EXISTS portfolios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID,   -- FK to users(id) added by auth-service migration V3
     name VARCHAR(100) NOT NULL,
     currency VARCHAR(10) DEFAULT 'USD',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -45,7 +38,7 @@ CREATE TABLE IF NOT EXISTS portfolio_holdings (
 
 CREATE TABLE IF NOT EXISTS watchlists (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID,   -- FK to users(id) added by auth-service migration V3
     symbol VARCHAR(20) NOT NULL,
     notes TEXT,
     alert_high NUMERIC(15, 4),
@@ -92,10 +85,5 @@ CREATE TABLE IF NOT EXISTS data_quality_anomalies (
     detected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Insert Default Seed Accounts (matching frontend mock auth)
-INSERT INTO users (email, password_hash, full_name, role)
-VALUES 
-    ('alex.silva@marketlens.io', '$2a$10$7R..mock..hash', 'Alex Silva', 'ROLE_ANALYST'),
-    ('nimal.perera@marketlens.io', '$2a$10$7R..mock..hash', 'Nimal Perera', 'ROLE_DATA_MANAGER'),
-    ('sarah.fernando@marketlens.io', '$2a$10$7R..mock..hash', 'Sarah Fernando', 'ROLE_ADMIN')
-ON CONFLICT (email) DO NOTHING;
+-- 6. Seed accounts: REMOVED. Dev users are created by the auth service (DevUserSeeder)
+-- from environment variables, with real BCrypt hashes.
