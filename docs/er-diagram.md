@@ -39,16 +39,21 @@ erDiagram
         varchar theme
         varchar language
         varchar timezone
-        char default_currency
+        varchar default_currency
         boolean notifications_enabled
     }
 ```
 
 ## Designed now, created in Sprint 2
-`api_keys`, `api_usage_records`, `audit_records`, `system_settings`
+`api_keys`, `api_usage_records`, `audit_logs`, `system_settings`
 (all FK to `users.id`; `api_keys` stores only a hash of the key).
 
 ## For M2 / M3 / M4
-Reference `users(id)` (UUID) as the FK target, e.g.
-`user_id UUID NOT NULL REFERENCES users(id)`. Migration V1 is the contract; don't alter it without telling M5.
+
+Reference `users(id)` (UUID) as the FK target, e.g. `user_id UUID NOT NULL REFERENCES users(id)`.
+Migration V1 is the contract; don't alter it without telling M5.
+
+`users` is created by the auth service's Flyway migrations, which run **after** `init-db.sql`.
+So don't put `REFERENCES users(id)` inside `init-db.sql`: add the foreign key afterwards
+(for example `ALTER TABLE ... ADD CONSTRAINT ...` in a later migration, as V3 does).
 Existing tables `portfolios` and `watchlists` get their FK to `users(id)` from migration V3.
