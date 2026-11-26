@@ -110,6 +110,9 @@ Member 4 AI chatbot integration.
 | AI_PROVIDER_ERROR | 502 | External AI provider failed |
 | AI_RATE_LIMITED | 429 | AI request rate limit exceeded |
 
+### Example AI Error Response
+
+```json
 {
   "status": "error",
   "error": {
@@ -122,3 +125,4 @@ Member 4 AI chatbot integration.
     "version": "v1"
   }
 }
+```

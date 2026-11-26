@@ -51,22 +51,20 @@ PRICE_ALERT
   "link": "/markets/AAPL",
   "timestamp": "2026-11-18T10:30:00Z"
 }
+```
 
+### Field Definitions
 
-When typing this into Markdown, ensure the JSON example is enclosed by one opening and one closing triple-backtick code fence.
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `user_id` | UUID | Yes | Target recipient user ID |
+| `type` | String | Yes | Allowed values: `PRICE_ALERT`, `SYSTEM_ALERT` |
+| `title` | String | Yes | Short notification title |
+| `message` | String | Yes | Human-readable notification detail |
+| `link` | String or null | No | Relative frontend route (e.g. `/markets/AAPL`) |
+| `timestamp` | ISO 8601 datetime | Yes | UTC event trigger time |
 
-Then add the field definitions:
-
-| Field | Type | Required |
-|---|---|---|
-| user_id | UUID | Yes |
-| type | String | Yes |
-| title | String | Yes |
-| message | String | Yes |
-| link | String or null | No |
-| timestamp | ISO 8601 datetime | Yes |
-
-### Understand the interconnectivity
+### Event Flow
 
 ```text
 Member 2 Alert Engine
@@ -81,31 +79,34 @@ Member 4 Notification Service
         v
 PostgreSQL Database
         |
-        | GET notifications
+        | GET /api/v1/notifications
         |
         v
 React Notifications UI
+```
 
 ## 5. Dashboard Aggregation Contract
 
 ### Proposed Endpoint
 
-GET /api/v1/dashboard
+`GET /api/v1/dashboard`
 
 ### Response Structure
 
-Each widget contains:
+The endpoint always returns HTTP `200 OK` even if one or more downstream widgets fail or time out, so partial failures are isolated per widget. Each widget contains:
 
-- status
-- data
-- error
+- `status`: `"success"` | `"error"` | `"unavailable"`
+- `data`: widget payload when `status` is `"success"`, otherwise `null`
+- `error`: `{ "code", "message" }` when `status` is `"error"`, otherwise `null`
 
-### Supported Widget Statuses
+### Sprint 1 Widget Availability
 
-- success
-- error
-- unavailable
+- **Live widgets**: `market_overview` (from Member 1), `notifications_summary` (from Member 4)
+- **Unavailable placeholders (Sprint 2)**: `portfolio_summary`, `watchlist_summary`, `news_sentiment`, `ai_insights`
 
+### Example Response
+
+```json
 {
   "status": "success",
   "data": {
@@ -125,6 +126,21 @@ Each widget contains:
         "message": "Notification service unavailable"
       }
     },
+    "portfolio_summary": {
+      "status": "unavailable",
+      "data": null,
+      "error": null
+    },
+    "watchlist_summary": {
+      "status": "unavailable",
+      "data": null,
+      "error": null
+    },
+    "news_sentiment": {
+      "status": "unavailable",
+      "data": null,
+      "error": null
+    },
     "ai_insights": {
       "status": "unavailable",
       "data": null,
@@ -136,24 +152,33 @@ Each widget contains:
     "version": "v1"
   }
 }
+```
 
 ## 6. AI Chat Contract
 
 ### Proposed Endpoint
 
-POST /api/v1/ai/chat
+`POST /api/v1/ai/chat`
 
-### Request Fields
+### Request Fields & Validation
 
-- conversation_id: UUID or null
-- message: string
+- `conversation_id`: UUID or `null` (when `null`, a new conversation is created for the authenticated user)
+- `message`: string (required, non-empty, max length 1000 characters)
 
+### Example Request
 
+```json
 {
   "conversation_id": null,
   "message": "Analyze the recent performance of AAPL."
 }
+```
 
+### Example Response
+
+The response explicitly separates **actual MarketLens data**, **calculated values**, **AI interpretation** (with decision-support disclaimer), and **context sources**:
+
+```json
 {
   "status": "success",
   "data": {
@@ -185,6 +210,11 @@ POST /api/v1/ai/chat
     "version": "v1"
   }
 }
+```
+
+### Error Handling
+
+AI error codes (`AI_TIMEOUT`, `AI_MISSING_CONTEXT`, `AI_PROVIDER_ERROR`, `AI_RATE_LIMITED`) follow the shared error envelope defined in [API_INTEGRATION.md](../development/API_INTEGRATION.md#ai-chat-error-codes-m4-01).
 
 
 ## 7. Integration Agreements
