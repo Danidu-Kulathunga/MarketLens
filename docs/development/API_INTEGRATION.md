@@ -95,3 +95,34 @@ Member 5 (AI Prediction) does not ingest external APIs or parse CSV files. Inste
 ```
 
 See [CONTRACT_MEMBER4_MEMBER5.md](../api/CONTRACT_MEMBER4_MEMBER5.md) for the exact payload contract and code examples.
+
+
+
+## AI Chat Error Codes (M4-01)
+
+The following error codes are proposed for the
+Member 4 AI chatbot integration.
+
+| Error code | Proposed HTTP status | Description |
+|---|---|---|
+| AI_TIMEOUT | 504 | AI provider did not respond within the timeout |
+| AI_MISSING_CONTEXT | 422 | Required financial context is unavailable |
+| AI_PROVIDER_ERROR | 502 | External AI provider failed |
+| AI_RATE_LIMITED | 429 | AI request rate limit exceeded |
+
+### Example AI Error Response
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "AI_TIMEOUT",
+    "message": "The AI provider did not respond in time.",
+    "details": []
+  },
+  "meta": {
+    "timestamp": "2026-11-18T10:30:00Z",
+    "version": "v1"
+  }
+}
+```
